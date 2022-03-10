@@ -7,6 +7,7 @@ import (
 	pgs "github.com/lyft/protoc-gen-star"
 	pgsgo "github.com/lyft/protoc-gen-star/lang/go"
 	"path/filepath"
+	"strings"
 	"text/template"
 )
 
@@ -59,12 +60,21 @@ func (m *ClientModule) Execute(targets map[string]pgs.File, pkgs map[string]pgs.
 }
 
 func (m *ClientModule) generate(packages []Package, services []Service) {
+	var packageNames []string
+	for _, p := range packages {
+		packageNames = append(packageNames, p.Name)
+	}
+	packagePrefix := tools.GetPrefix(packageNames)
+	packageName := filepath.Base(strings.TrimSuffix(packagePrefix, "/"))
+
 	m.AddGeneratorTemplateFile("client.pb.connection.go", m.tpl, struct {
-		Packages []Package
-		Services []Service
+		PackageName string
+		Packages    []Package
+		Services    []Service
 	}{
-		Packages: packages,
-		Services: services,
+		PackageName: packageName,
+		Packages:    packages,
+		Services:    services,
 	})
 }
 
@@ -88,7 +98,7 @@ func getServices(f pgs.File) (services []Service) {
 		Service string `yaml:"service"`
 	}
 
-	tools.ParseYaml(meta)(filepath.Join(path, "meta.yaml"))
+	tools.ParseYaml(&meta)(filepath.Join(path, "meta.yaml"))
 
 	for _, svc := range f.Services() {
 		services = append(services, struct {
