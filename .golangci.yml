@@ -1,0 +1,32 @@
+linters:
+  # See the dedicated "linters" documentation section.
+  # Enable specific linter
+  # https://golangci-lint.run/usage/linters/#enabled-by-default-linters
+  enable:
+    - forcetypeassert
+    - goconst
+    - gochecknoglobals
+    - nlreturn
+    - wastedassign
+    - dupl
+    - misspell
+    - decorder
+    - gofmt
+##    - Phase 3
+#    - bodyclose
+#    - errchkjson
+#    - exhaustive
+#    - exportloopref
+#    - gosec
+#    - contextcheck
+#    - sqlclosecheck
+#    - rowserrcheck
+##    - Phase 4
+#    - noctx
+#    - cyclop
+#    - funlen
+#    - maintidx
+#    - gocritic
+#    - exhaustivestruct
+#    - paralleltest
+#    - tparallel
