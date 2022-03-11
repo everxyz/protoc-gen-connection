@@ -67,7 +67,7 @@ func (m *ClientModule) generate(packages []Package, services []Service) {
 	packagePrefix := tools.GetPrefix(packageNames)
 	packageName := filepath.Base(strings.TrimSuffix(packagePrefix, "/"))
 
-	m.AddGeneratorTemplateFile("client.pb.connection.go", m.tpl, struct {
+	m.AddGeneratorTemplateFile(filepath.Join(m.OutputPath(), "client.pb.connection.go"), m.tpl, struct {
 		PackageName string
 		Packages    []Package
 		Services    []Service
