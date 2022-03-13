@@ -14,7 +14,6 @@ import (
 type ClientModule struct {
 	*pgs.ModuleBase
 	ctx pgsgo.Context
-	tpl *template.Template
 }
 
 type Package struct {
@@ -22,10 +21,15 @@ type Package struct {
 	Alias string
 }
 
-type Service struct {
+type ProtoService struct {
 	Name    string
 	Package string
 	Service string
+}
+
+type ServiceConn struct {
+	Name   string
+	Target string
 }
 
 func GRPCClient() *ClientModule { return &ClientModule{ModuleBase: &pgs.ModuleBase{}} }
@@ -39,19 +43,12 @@ func (m *ClientModule) InitContext(c pgs.BuildContext) {
 func (m *ClientModule) Name() string { return "client" }
 
 func (m *ClientModule) Execute(targets map[string]pgs.File, pkgs map[string]pgs.Package) []pgs.Artifact {
-	tpl := template.New("client").Funcs(map[string]interface{}{
-		//"package":    p.ctx.PackageName,
-		//"name":       p.ctx.Name,
-	})
-
-	m.tpl = template.Must(tpl.Parse(pgctpl.ClientTemplate))
-
 	var packages []Package
-	var services []Service
+	var services []ProtoService
 
 	for _, f := range targets {
 		packages = append(packages, getGoPackage(f))
-		services = append(services, getServices(f)...)
+		services = append(services, getProtoServices(f)...)
 	}
 
 	m.generate(packages, services)
@@ -59,7 +56,7 @@ func (m *ClientModule) Execute(targets map[string]pgs.File, pkgs map[string]pgs.
 	return m.Artifacts()
 }
 
-func (m *ClientModule) generate(packages []Package, services []Service) {
+func (m *ClientModule) generate(packages []Package, services []ProtoService) {
 	var packageNames []string
 	for _, p := range packages {
 		packageNames = append(packageNames, p.Name)
@@ -67,15 +64,33 @@ func (m *ClientModule) generate(packages []Package, services []Service) {
 	packagePrefix := tools.GetPrefix(packageNames)
 	packageName := filepath.Base(strings.TrimSuffix(packagePrefix, "/"))
 
-	m.AddGeneratorTemplateFile(filepath.Join(m.OutputPath(), "client.pb.connection.go"), m.tpl, struct {
-		PackageName string
-		Packages    []Package
-		Services    []Service
-	}{
-		PackageName: packageName,
-		Packages:    packages,
-		Services:    services,
-	})
+	m.AddGeneratorTemplateFile(
+		filepath.Join(m.OutputPath(), "client.pb.connection.go"),
+		template.Must(template.New("client").Parse(pgctpl.ClientTemplate)),
+		struct {
+			PackageName string
+			Packages    []Package
+			Services    []ProtoService
+		}{
+			PackageName: packageName,
+			Packages:    packages,
+			Services:    services,
+		},
+	)
+
+	m.AddGeneratorTemplateFile(
+		filepath.Join(m.OutputPath(), "client-conn.pb.connection.go"),
+		template.Must(template.New("client-conn").Funcs(template.FuncMap{
+			"ToLower": strings.ToLower,
+		}).Parse(pgctpl.ClientConnTemplate)),
+		struct {
+			PackageName string
+			Services    []ServiceConn
+		}{
+			PackageName: packageName,
+			Services:    getServiceConn(m),
+		},
+	)
 }
 
 func getGoPackage(f pgs.File) Package {
@@ -91,7 +106,7 @@ func getGoPackage(f pgs.File) Package {
 	}
 }
 
-func getServices(f pgs.File) (services []Service) {
+func getProtoServices(f pgs.File) (services []ProtoService) {
 	path := filepath.Dir(f.InputPath().String())
 
 	var meta struct {
@@ -113,4 +128,18 @@ func getServices(f pgs.File) (services []Service) {
 	}
 
 	return services
+}
+
+func getServiceConn(m *ClientModule) (conn []ServiceConn) {
+	var connYaml map[string]string
+	tools.ParseYaml(&connYaml)(filepath.Join(m.OutputPath(), "service.conf.connection.yaml"))
+
+	for key, value := range connYaml {
+		conn = append(conn, ServiceConn{
+			Name:   key,
+			Target: value,
+		})
+	}
+
+	return conn
 }
