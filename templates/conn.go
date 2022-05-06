@@ -10,6 +10,16 @@ import (
 	"time"
 )
 
+var defaultUnaryInterceptor = []grpc.UnaryClientInterceptor{}
+
+func SetUnaryInterceptor(a []grpc.UnaryClientInterceptor) {
+	defaultUnaryInterceptor = a
+}
+
+func AddUnaryInterceptor(i grpc.UnaryClientInterceptor) {
+	defaultUnaryInterceptor = append(defaultUnaryInterceptor, i)
+}
+
 type clientConn struct {
 {{- range .Services }}
 	{{ .Name | ToLower }} *grpc.ClientConn
@@ -33,6 +43,7 @@ func (s *Service) Close() {
 func (s *Service) create{{ .Name }}ClientConn() {
 	conn, err := grpc.Dial({{ .Target }},
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainUnaryInterceptor(defaultUnaryInterceptor...),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                10 * time.Second,
 			PermitWithoutStream: true,
