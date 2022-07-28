@@ -40,15 +40,19 @@ func (s *Service) Close() {
 
 {{- range .Services }}
 
-func (s *Service) create{{ .Name }}ClientConn() {
-	conn, err := grpc.Dial({{ .Target }},
+func (s *Service) create{{ .Name }}ClientConn(opts ...grpc.DialOption) {
+
+	opts2 := []grpc.DialOption {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(defaultUnaryInterceptor...),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                10 * time.Second,
 			PermitWithoutStream: true,
-		}))
+		}),
+	}
+	opts2 = append(opts2, opts...)
 
+	conn, err := grpc.Dial({{ .Target }}, opts2...)
 	if err != nil {
 		panic(err)
 	}
