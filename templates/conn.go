@@ -26,9 +26,9 @@ type clientConn struct {
 {{- end }}
 }
 
-func (s *Service) createClientConn() {
+func (s *Service) createClientConn(opts ...grpc.DialOption) {
 {{- range .Services }}
-	s.create{{ .Name }}ClientConn()
+	s.create{{ .Name }}ClientConn(opts...)
 {{- end }}
 }
 
