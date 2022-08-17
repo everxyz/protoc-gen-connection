@@ -20,4 +20,10 @@ func (s *Service) getClient () {
 	s.Client.{{ .Name }} = {{ .Package }}.New{{ .Name }}Client(s.conn.{{ .Service }})
 {{- end }}
 }
+
+func (s *Service) getMockClient (ctrl *gomock.Controller) {
+{{- range .Services }}
+	s.Client.{{ .Name }} = {{ .Package }}.NewMock{{ .Name }}Client(ctrl)
+{{- end }}
+}
 `
