@@ -27,4 +27,16 @@ func (s *Service) getMockClient (ctrl *gomock.Controller) {
 	s.Client.{{ .Name }} = {{ .Package }}.NewMock{{ .Name }}Client(ctrl)
 {{- end }}
 }
+
+type MockClient struct {
+{{- range .Services }}
+	{{ .Name }} *{{ .Package }}.Mock{{ .Name }}Client
+{{- end }}
+}
+
+func (c *MockClient) MockAssign(resource *client) {
+{{- range .Services }}
+	c.{{ .Name }} = resource.{{ .Name }}.(*{{ .Package }}.Mock{{ .Name }}Client)
+{{- end }}
+}
 `
